@@ -1,4 +1,5 @@
 An implementation of WGAN-GP.
+https://arxiv.org/abs/1704.00028
 
 
 python train.py
