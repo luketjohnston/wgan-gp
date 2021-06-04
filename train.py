@@ -1,6 +1,7 @@
 import tensorflow as tf
 import code
 import multiprocessing as mp
+from datetime import datetime
 import matplotlib
 import timeit
 from tensorflow.keras.layers import Conv2D, Flatten, Dense
@@ -22,9 +23,6 @@ if tf.config.list_physical_devices('GPU'):
   # For some reason this is necessary to prevent error
   physical_devices = tf.config.experimental.list_physical_devices('GPU')
   tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
-
-
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -61,7 +59,9 @@ if __name__ == '__main__':
   elif args.load_model:
     savepath = args.load_model
   else:
-    savepath = wgan.model_savepath
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    savedir_path = os.path.join(dir_path, 'saves')
+    savepath = os.path.join(savedir_path, 'wgan_' + str(datetime.now()))
 
   picklepath = os.path.join(savepath, 'save.pickle')
  
@@ -105,34 +105,14 @@ if __name__ == '__main__':
       tf.profiler.experimental.stop()
 
     for i,real_images in enumerate(ds):
-        if QUICK_TEST:
-          break;
 
-
-        if RUN_EAGER:
-          with tf.GradientTape() as tape:
-            fake_ims = gan.generate(real_images.shape[0])
-            critic_loss, _, _ = gan.criticLoss(real_images, fake_ims)
-          grads = tape.gradient(critic_loss, gan.critic_vars)
-          gan.critic_opt.apply_gradients(zip(grads, gan.critic_vars))
-        else:
-          critic_loss = gan.trainCritic(real_images, real_images.shape[0])
+        critic_loss = gan.trainCritic(real_images, real_images.shape[0])
         gan_save['critic_losses'] += [critic_loss]
-
-        #if not i % PRINT_CRITIC:
-        #  print('critic loss: %f' % critic_loss)
-
 
         # train only the critic for the first INITIAL_CRITIC_EPOCHS
         if (not i % NUM_CRITIC_PER_GEN) and (epoch >= INITIAL_CRITIC_EPOCHS):
-          if RUN_EAGER:
-            with tf.GradientTape() as tape:
-              gen_loss = gan.genLoss(BATCH_SIZE)
-            grads = tape.gradient(gen_loss, gan.gen_vars)
-            gan.gen_opt.apply_gradients(zip(grads, gan.gen_vars))
-          else:
-            gen_loss = gan.trainGen(BATCH_SIZE)
-            gan_save['gen_losses'] += [gen_loss]
+          gen_loss = gan.trainGen(BATCH_SIZE)
+          gan_save['gen_losses'] += [gen_loss]
           loss_str = ''.join('{:6f}, '.format(lossv) for lossv in (critic_loss, gen_loss))
           print('%d/%d: critic, gen: %s' % (i,ds.cardinality(),loss_str))
        
@@ -143,7 +123,6 @@ if __name__ == '__main__':
     saveImage(gan, im_fn)
 
 
-    # TODO modularize all this saving...
     # TODO figure out how to use keras save/load??
     tf.saved_model.save(gan, savepath)
     with open(picklepath, "wb") as fp:

@@ -1,20 +1,12 @@
 import tensorflow as tf
 import math
-import os
-from datetime import datetime
 from tensorflow.keras import Model
-import gym
 import pickle
-
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import tensorflow_datasets as tfds
 import numpy as np
 
-
-# let's work with input of size 84x110x4. DQN paper uses 84x84x4 because they crop the score, I'm not sure we should do this.
-# score lets us tell by the screen how far along we are in the game (for example if we have to return to a room we already 
-# have been to, a higher score would let us know it's the second time we've been there).
 
 def makeDataset():
   return tfds.load('mnist', split="train", shuffle_files=True)
@@ -43,26 +35,11 @@ DECODE_STRIDES =     [2,2]
 
 DECONV_SHAPES = [[14,14],[28,28]]
 
-
-# test with no conv2d_transpose
-#DECODE_LAYERS = [1024, 28*28]
-#DECODE_FILTER_SIZES = []
-#DECODE_CHANNELS = []
-#DECODE_STRIDES = []
-#DECONV_SHAPES = []
-#DECODE_IN_SHAPE = [28,28,1]
-
-
-
 CRIT_FILTER_SIZES = [4,4]
 CRIT_CHANNELS =     [64,128]
 CRIT_STRIDES =     [2,2]
 
-
-
 CRIT_LAYERS = [1024,1]
-
-
 
 
 INT_TYPE = tf.int32
@@ -71,13 +48,8 @@ WIDTH,HEIGHT,DEPTH = makeDataset().element_spec['image'].shape.as_list()
 IMSPEC = tf.TensorSpec([None,WIDTH,HEIGHT,DEPTH], dtype=FLOAT_TYPE)
 BOOLSPEC = tf.TensorSpec([], dtype=tf.bool)
 
-
 INTSPEC = tf.TensorSpec([], dtype=INT_TYPE)
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-savedir_path = os.path.join(dir_path, 'saves')
-model_savepath = os.path.join(savedir_path, 'wgan_' + str(datetime.now()))
-picklepath = os.path.join(model_savepath, 'gan.pickle')
 
 def getConvOutputSize(w,h,filtersize, channels, stride):
   # padding if necessary
@@ -148,7 +120,9 @@ class Generator(tf.keras.Model):
 
   @tf.function(input_signature=(INTSPEC,BOOLSPEC))
   def call(self, num_images, is_training=True):
-    x = tf.random.uniform([num_images, FEATURE_SIZE],-1,1) # TODO should we use uniform or normal?
+    #TODO add hyperparam for whether to use normal or uniform sampling
+    # uniform seems to work slightly better than normal on mnist
+    x = tf.random.uniform([num_images, FEATURE_SIZE],-1,1) 
     for layer, bn in zip(self.dense, self.denseBN):
       x = bn(layer(x), training=is_training)
     x = tf.reshape(x, [-1] + DECODE_IN_SHAPE)
