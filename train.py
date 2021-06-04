@@ -16,6 +16,8 @@ import argparse
 
 from visualize import saveImage
 
+QUICK_TEST = False
+
 if tf.config.list_physical_devices('GPU'):
   # For some reason this is necessary to prevent error
   physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -28,7 +30,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
 
-import keras_wgan as wgan
+import wgan
 
 RUN_EAGER = False
 PROFILE = False
@@ -39,8 +41,8 @@ if RUN_EAGER:
 # TODO save and load training params in savepath
 # TODO make params command line args rather than global variables
 
-EPOCHS = 25
-NUM_CRITIC_PER_GEN = 1 # number of training steps for critic per step for generator
+EPOCHS = 20
+NUM_CRITIC_PER_GEN = 5 # number of training steps for critic per step for generator
 GEN_BATCHES = 1
 INITIAL_CRITIC_EPOCHS = 0
 BATCH_SIZE = 64
@@ -103,7 +105,8 @@ if __name__ == '__main__':
       tf.profiler.experimental.stop()
 
     for i,real_images in enumerate(ds):
-        if i == 2: break;
+        if QUICK_TEST:
+          break;
 
 
         if RUN_EAGER:

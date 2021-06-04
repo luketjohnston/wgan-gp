@@ -21,17 +21,15 @@ def makeDataset():
 
 DEPTH = 1
 
-LR_CRITIC = 0.0001
-LR_GEN = LR_CRITIC
+LR_CRITIC = 0.0002
+LR_GEN = LR_CRITIC 
 
-BETA_1 = 0.5 # was 0 before
-BETA_1 = 0 
-ADAM_PARAMS = {'learning_rate': LR_CRITIC, 'beta_1': BETA_1, 'beta_2': 0.9}
+ADAM_PARAMS = {'learning_rate': LR_CRITIC, 'beta_1': 0, 'beta_2': 0.9}
 
 ACTIVATION = tf.nn.leaky_relu
 DECODE_ACTIVATION = tf.nn.relu
 
-GRAD_LAMBDA = 0.25 # had 10 before
+GRAD_LAMBDA = 10
 
 FEATURE_SIZE = 128
 
@@ -80,14 +78,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 savedir_path = os.path.join(dir_path, 'saves')
 model_savepath = os.path.join(savedir_path, 'wgan_' + str(datetime.now()))
 picklepath = os.path.join(model_savepath, 'gan.pickle')
-
-def restrict_unit_interval(x):
-  #return 1 - tf.exp(tf.pow(x,2))
-  
-  # the multiplier ensures the network won't just learn very large 
-  # or very small values for x. Keeps x in area where gradient is meaninful
-  return tf.nn.sigmoid(x)
-  #return tf.nn.sigmoid(x) * 1.2 - 0.1
 
 def getConvOutputSize(w,h,filtersize, channels, stride):
   # padding if necessary
@@ -158,7 +148,7 @@ class Generator(tf.keras.Model):
 
   @tf.function(input_signature=(INTSPEC,BOOLSPEC))
   def call(self, num_images, is_training=True):
-    x = tf.random.normal([num_images, FEATURE_SIZE])
+    x = tf.random.uniform([num_images, FEATURE_SIZE],-1,1) # TODO should we use uniform or normal?
     for layer, bn in zip(self.dense, self.denseBN):
       x = bn(layer(x), training=is_training)
     x = tf.reshape(x, [-1] + DECODE_IN_SHAPE)
@@ -200,8 +190,8 @@ class WGAN(Model):
   def criticLoss(self, real_images, gen_images):
 
 
-    real_score = tf.reduce_mean(self.critic.call(real_images))
-    fake_score = tf.reduce_mean(self.critic.call(gen_images))
+    real_score = tf.reduce_mean(self.critic(real_images))
+    fake_score = tf.reduce_mean(self.critic(gen_images))
 
     batch_size = tf.shape(real_images)[0:1]
     
